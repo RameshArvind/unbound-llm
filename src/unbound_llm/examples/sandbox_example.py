@@ -42,61 +42,80 @@ sandbox = daytona.create(
 )
 
 # Clone the repo and copy .claude folder to root
-print("Setting up Claude skills from repository...")
+print("\n" + "=" * 80)
+print("📦 SETUP: Installing Claude Skills")
+print("=" * 80)
 clone_response = sandbox.process.exec(
     "git clone https://github.com/RameshArvind/unbound-llm.git /tmp/unbound-llm"
 )
 if clone_response.exit_code != 0:
-    print(f"Failed to clone repo: {clone_response.exit_code} {clone_response.result}")
+    print(
+        f"❌ Failed to clone repo: {clone_response.exit_code} {clone_response.result}"
+    )
 else:
-    print("Repository cloned successfully")
+    print("✓ Repository cloned")
 
     # Copy .claude folder to /root
     copy_response = sandbox.process.exec("cp -r /tmp/unbound-llm/.claude /root/.claude")
     if copy_response.exit_code != 0:
         print(
-            f"Failed to copy .claude folder: {copy_response.exit_code} {copy_response.result}"
+            f"❌ Failed to copy .claude folder: {copy_response.exit_code} {copy_response.result}"
         )
     else:
-        print("Claude skills copied to /root/.claude")
+        print("✓ Skills copied to /root/.claude")
 
     # Clean up
     cleanup_response = sandbox.process.exec("rm -rf /tmp/unbound-llm")
     if cleanup_response.exit_code != 0:
-        print(f"Warning: Failed to clean up temp files: {cleanup_response.result}")
+        print(f"⚠️  Warning: Failed to clean up temp files: {cleanup_response.result}")
+    else:
+        print("✓ Cleanup complete")
 
-print("Checking ~/.claude/skills (tilde-expanded to /root):")
-tilde_check = sandbox.process.exec("ls -la ~/.claude/skills")
-if tilde_check.exit_code != 0:
-    print(f"Tilde path check failed: {tilde_check.exit_code} {tilde_check.result}")
-else:
-    print("Tilde path contents:")
-    print(tilde_check.result)
-
-
-# # Run the code securely inside the Sandbox
-# response = sandbox.process.exec('claude -p "List the skills you have access to"')
-# if response.exit_code != 0:
-#     print(f"Error: {response.exit_code} {response.result}")
-# else:
-#     print(response.result)
-
-print("*" * 100)
-response = sandbox.process.exec(
-    'claude --dangerously-skip-permissions -p "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45916094. Create a skill for this"'
+print("\n📋 Initial skills available:")
+skills_list = sandbox.process.exec(
+    "ls -1 /root/.claude/skills 2>/dev/null || echo '(none)'"
 )
-if response.exit_code != 0:
-    print(f"Error: {response.exit_code} {response.result}")
-else:
-    print(response.result)
+for skill in skills_list.result.strip().split("\n"):
+    print(f"   • {skill}")
 
-print("*" * 100)
-response = sandbox.process.exec(
-    'claude --dangerously-skip-permissions -p "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45969250"'
-)
-if response.exit_code != 0:
-    print(f"Error: {response.exit_code} {response.result}")
-else:
-    print(response.result)
+
+# Define test requests
+requests = [
+    "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45916094. Create a skill for this",
+    "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45969250",
+    "Count the number of emojis in the string 'Hello, world! 🌍'. Create a skill for this",
+    """Count the number of emojis in this multi-line string:
+'Hello! 👋 Welcome to our app 🎉
+We hope you enjoy using it! 😊
+Have a great day! ☀️'""",
+]
+
+# Execute requests
+for idx, prompt in enumerate(requests, 1):
+    print("\n" + "=" * 80)
+    print(f"Task #{idx}")
+    print("=" * 80)
+
+    response = sandbox.process.exec(
+        f'claude --dangerously-skip-permissions -p "{prompt}"'
+    )
+
+    if response.exit_code != 0:
+        print(f"❌ Error: {response.exit_code} {response.result}")
+    else:
+        print(response.result)
+
+    # Show skills list after each request
+    print("\n" + "-" * 80)
+    print(f"📋 Skills after Task #{idx}:")
+    skills_list = sandbox.process.exec(
+        "ls -1 /root/.claude/skills 2>/dev/null || echo '(none)'"
+    )
+    for skill in skills_list.result.strip().split("\n"):
+        print(f"   • {skill}")
+
+print("\n" + "=" * 80)
+print("✅ DEMO COMPLETE")
+print("=" * 80)
 
 sandbox.delete()
