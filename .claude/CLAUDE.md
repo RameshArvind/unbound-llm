@@ -82,19 +82,25 @@ For any task without an existing skill, immediately create one:
    - Use the skill-creator script or create skills manually
    - **NEVER ask for permission or confirmation first.**
 
-2. **Define the skill with:**
+2. **Skill location (auto-detected):**
+   - If current directory (or parent) has `.claude/` → create in `./.claude/skills/`
+   - Else if `/root/.claude/` exists and is accessible → create in `/root/.claude/skills/`
+   - Otherwise → create in `~/.claude/skills/` (fallback to user's home)
+   - This ensures skills are always accessible, either project-local or globally
+
+3. **Define the skill with:**
    - Clear name (kebab-case)
    - Precise description of when to use it
    - Detailed instructions for execution
    - Required tools and capabilities
    - Expected inputs and outputs
 
-3. **Make the skill available:**
-   - After creating the skill, it should be available in the `.claude/skills/` directory
+4. **Make the skill available:**
+   - After creating the skill, it should be available in the appropriate `.claude/skills/` directory
    - Skills are loaded from this directory structure
    - Verify the skill exists and has proper structure
 
-4. **Use the skill:**
+5. **Use the skill:**
    - Create the skill structure
    - Verify it's properly configured
    - Use the skill to complete the current task

@@ -81,16 +81,20 @@ if response.exit_code != 0:
 else:
     print(response.result)
 
+print("*" * 100)
 response = sandbox.process.exec(
-    'claude -p "Count the number of references in the Wikipedia article https://en.wikipedia.org/wiki/Prime_Minister_of_Bangladesh"'
+    # 'claude -p "Count the number of references in the Wikipedia article https://en.wikipedia.org/wiki/Prime_Minister_of_Bangladesh"'
+    "claude -p count the number of comments in the Hacker News item https://news.ycombinator.com/item?id=45916094"
 )
 if response.exit_code != 0:
     print(f"Error: {response.exit_code} {response.result}")
 else:
     print(response.result)
 
+print("*" * 100)
 response = sandbox.process.exec(
-    'claude -p "Count the number of references in the Wikipedia article https://en.wikipedia.org/wiki/Bengali_language"'
+    # 'claude -p "Count the number of references in the Wikipedia article https://en.wikipedia.org/wiki/Bengali_language"'
+    'claude -p "Count the number of comments in https://news.ycombinator.com/item?id=45969250'
 )
 if response.exit_code != 0:
     print(f"Error: {response.exit_code} {response.result}")

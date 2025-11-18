@@ -341,12 +341,21 @@ When creating a new skill from scratch, always run the `init_skill.py` script. T
 Usage:
 
 ```bash
-# Standard skill
-scripts/init_skill.py <skill-name> --path <output-directory>
+# Auto-detect location (recommended)
+scripts/init_skill.py <skill-name>
+scripts/init_skill.py <skill-name> --agent-sdk
 
-# Agent SDK skill (with custom tools)
+# Explicit location
+scripts/init_skill.py <skill-name> --path <output-directory>
 scripts/init_skill.py <skill-name> --path <output-directory> --agent-sdk
 ```
+
+**Auto-detection (when --path is omitted):**
+- Searches for `.claude/` in current directory or any parent directory
+- If found → creates skill in `.claude/skills/` (project-local)
+- Else if `/root/.claude/` exists and is accessible → creates in `/root/.claude/skills/` (global)
+- Otherwise → creates in `~/.claude/skills/` (fallback to user's home)
+- This ensures skills are always accessible without manual path specification
 
 **The `--agent-sdk` option creates a Claude Agent SDK-based skill** that includes:
 - Custom MCP tools using the `@tool` decorator
@@ -367,6 +376,25 @@ scripts/init_skill.py <skill-name> --path <output-directory> --agent-sdk
 - ✅ One-off utility scripts without custom tools
 - ✅ Skills that just guide Claude's behavior
 - ✅ Reference documentation or templates
+
+**Typical usage patterns:**
+
+```bash
+# In a project with .claude/ directory
+cd /home/user/my-project  # Has .claude/ directory
+python .claude/skills/skill-creator/scripts/init_skill.py my-skill
+# Creates: /home/user/my-project/.claude/skills/my-skill/
+
+# In a directory without .claude/
+cd /tmp/random-work-dir  # No .claude/ directory
+python /path/to/init_skill.py utility-skill
+# Creates: /root/.claude/skills/utility-skill/ (if /root/.claude accessible)
+#      or: ~/.claude/skills/utility-skill/ (fallback)
+
+# Explicitly specify location (override auto-detection)
+python init_skill.py custom-skill --path /custom/location
+# Creates: /custom/location/custom-skill/
+```
 
 **The script:**
 

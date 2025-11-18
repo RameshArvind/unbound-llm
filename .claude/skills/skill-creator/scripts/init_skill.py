@@ -14,7 +14,6 @@ Examples:
 import sys
 from pathlib import Path
 
-
 SKILL_TEMPLATE = """---
 name: {skill_name}
 description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
@@ -352,7 +351,7 @@ Note: This is a text placeholder. Actual assets can be any file type.
 
 def title_case_skill_name(skill_name):
     """Convert hyphenated skill name to Title Case for display."""
-    return ' '.join(word.capitalize() for word in skill_name.split('-'))
+    return " ".join(word.capitalize() for word in skill_name.split("-"))
 
 
 def init_skill(skill_name, path, use_agent_sdk=False):
@@ -369,15 +368,25 @@ def init_skill(skill_name, path, use_agent_sdk=False):
     """
     # Determine skill directory path
     skill_dir = Path(path).resolve() / skill_name
+    parent_dir = Path(path).resolve()
 
-    # Check if directory already exists
+    # Ensure parent directory exists first
+    try:
+        if not parent_dir.exists():
+            parent_dir.mkdir(parents=True, exist_ok=True)
+            print(f"✅ Created parent directory: {parent_dir}")
+    except Exception as e:
+        print(f"❌ Error creating parent directory: {e}")
+        return None
+
+    # Check if skill directory already exists
     if skill_dir.exists():
         print(f"❌ Error: Skill directory already exists: {skill_dir}")
         return None
 
     # Create skill directory
     try:
-        skill_dir.mkdir(parents=True, exist_ok=False)
+        skill_dir.mkdir(parents=False, exist_ok=False)
         print(f"✅ Created skill directory: {skill_dir}")
     except Exception as e:
         print(f"❌ Error creating directory: {e}")
@@ -386,11 +395,10 @@ def init_skill(skill_name, path, use_agent_sdk=False):
     # Create SKILL.md from template
     skill_title = title_case_skill_name(skill_name)
     skill_content = SKILL_TEMPLATE.format(
-        skill_name=skill_name,
-        skill_title=skill_title
+        skill_name=skill_name, skill_title=skill_title
     )
 
-    skill_md_path = skill_dir / 'SKILL.md'
+    skill_md_path = skill_dir / "SKILL.md"
     try:
         skill_md_path.write_text(skill_content)
         print("✅ Created SKILL.md")
@@ -401,37 +409,39 @@ def init_skill(skill_name, path, use_agent_sdk=False):
     # Create resource directories with example files
     try:
         # Create scripts/ directory with example script
-        scripts_dir = skill_dir / 'scripts'
+        scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(exist_ok=True)
-        
+
         # Choose script template based on use_agent_sdk flag
         if use_agent_sdk:
-            example_script = scripts_dir / 'run_agent.py'
-            skill_name_underscore = skill_name.replace('-', '_')
-            example_script.write_text(AGENT_SDK_SCRIPT.format(
-                skill_name=skill_name,
-                skill_name_underscore=skill_name_underscore,
-                skill_title=skill_title
-            ))
+            example_script = scripts_dir / "run_agent.py"
+            skill_name_underscore = skill_name.replace("-", "_")
+            example_script.write_text(
+                AGENT_SDK_SCRIPT.format(
+                    skill_name=skill_name,
+                    skill_name_underscore=skill_name_underscore,
+                    skill_title=skill_title,
+                )
+            )
             example_script.chmod(0o755)
             print("✅ Created scripts/run_agent.py (Claude Agent SDK)")
         else:
-            example_script = scripts_dir / 'example.py'
+            example_script = scripts_dir / "example.py"
             example_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
             example_script.chmod(0o755)
             print("✅ Created scripts/example.py")
 
         # Create references/ directory with example reference doc
-        references_dir = skill_dir / 'references'
+        references_dir = skill_dir / "references"
         references_dir.mkdir(exist_ok=True)
-        example_reference = references_dir / 'api_reference.md'
+        example_reference = references_dir / "api_reference.md"
         example_reference.write_text(EXAMPLE_REFERENCE.format(skill_title=skill_title))
         print("✅ Created references/api_reference.md")
 
         # Create assets/ directory with example asset placeholder
-        assets_dir = skill_dir / 'assets'
+        assets_dir = skill_dir / "assets"
         assets_dir.mkdir(exist_ok=True)
-        example_asset = assets_dir / 'example_asset.txt'
+        example_asset = assets_dir / "example_asset.txt"
         example_asset.write_text(EXAMPLE_ASSET)
         print("✅ Created assets/example_asset.txt")
     except Exception as e:
@@ -447,39 +457,116 @@ def init_skill(skill_name, path, use_agent_sdk=False):
         print("3. Install dependencies: pip install claude-agent-sdk")
         print("4. Run the agent: python scripts/run_agent.py")
     else:
-        print("2. Customize or delete the example files in scripts/, references/, and assets/")
-    print(f"{3 if use_agent_sdk else 2}. Run the validator when ready to check the skill structure")
+        print(
+            "2. Customize or delete the example files in scripts/, references/, and assets/"
+        )
+    print(
+        f"{3 if use_agent_sdk else 2}. Run the validator when ready to check the skill structure"
+    )
 
     return skill_dir
 
 
+def determine_skills_path():
+    """
+    Determine the appropriate path for creating skills.
+
+    Returns:
+        Path to skills directory (project-local or global)
+    """
+    cwd = Path.cwd()
+
+    # Check if current directory or any parent has .claude/
+    current = cwd
+    while current != current.parent:
+        claude_dir = current / ".claude"
+        if claude_dir.exists() and claude_dir.is_dir():
+            skills_path = claude_dir / "skills"
+            return str(skills_path)
+        current = current.parent
+
+    # No .claude found, use global location
+    # Prefer /root/.claude/skills if it exists and is accessible
+    root_claude = Path('/root/.claude/skills')
+    try:
+        # Check if we can access /root/.claude by checking parent
+        root_claude_parent = Path('/root/.claude')
+        if root_claude_parent.exists():
+            return str(root_claude)
+        # If /root/.claude doesn't exist, check if we can create it
+        # by checking if /root is writable
+        root_path = Path('/root')
+        if root_path.exists() and root_path.is_dir():
+            # Try to check write access
+            test_file = root_path / '.claude_test_write'
+            try:
+                test_file.touch()
+                test_file.unlink()
+                return str(root_claude)
+            except (OSError, PermissionError):
+                pass
+    except (OSError, PermissionError):
+        pass
+    
+    # Fall back to user's home directory
+    home = Path.home()
+    return str(home / ".claude" / "skills")
+
+
 def main():
-    if len(sys.argv) < 4 or sys.argv[2] != '--path':
-        print("Usage: init_skill.py <skill-name> --path <path> [--agent-sdk]")
+    # Check if --path is provided
+    if len(sys.argv) >= 4 and sys.argv[2] == "--path":
+        # Explicit path provided
+        skill_name = sys.argv[1]
+        path = sys.argv[3]
+        use_agent_sdk = "--agent-sdk" in sys.argv
+    elif len(sys.argv) >= 2:
+        # No --path provided, auto-determine
+        skill_name = sys.argv[1]
+        use_agent_sdk = "--agent-sdk" in sys.argv
+        path = determine_skills_path()
+
+        print(f"📍 Auto-detected skills location: {path}")
+        home_claude = str(Path.home() / '.claude')
+        if path.startswith('/root/.claude'):
+            print("   (Using global skills directory)")
+        elif path.startswith(home_claude):
+            print("   (Using global skills directory in user home)")
+        else:
+            print("   (Using project-local skills directory)")
+        print()
+    else:
+        print("Usage: init_skill.py <skill-name> [--path <path>] [--agent-sdk]")
         print("\nSkill name requirements:")
         print("  - Hyphen-case identifier (e.g., 'data-analyzer')")
         print("  - Lowercase letters, digits, and hyphens only")
         print("  - Max 40 characters")
         print("  - Must match directory name exactly")
         print("\nOptions:")
-        print("  --agent-sdk  Create a Claude Agent SDK skill with custom tools")
+        print("  --path <path>  Specify custom location (optional)")
+        print("                 If omitted, auto-detects:")
+        print(
+            "                 - .claude/skills/ if .claude/ exists in current or parent directory"
+        )
+        print("                 - /root/.claude/skills/ if accessible")
+        print("                 - ~/.claude/skills/ otherwise (fallback)")
+        print("  --agent-sdk    Create a Claude Agent SDK skill with custom tools")
         print("\nExamples:")
-        print("  init_skill.py my-new-skill --path skills/public")
-        print("  init_skill.py my-api-helper --path skills/private")
-        print("  init_skill.py db-analyzer --path skills/public --agent-sdk")
+        print("  # Auto-detect location")
+        print("  init_skill.py my-new-skill")
+        print("  init_skill.py db-analyzer --agent-sdk")
+        print("")
+        print("  # Explicit location")
+        print("  init_skill.py my-api-helper --path .claude/skills")
         print("  init_skill.py custom-skill --path /custom/location")
         sys.exit(1)
-
-    skill_name = sys.argv[1]
-    path = sys.argv[3]
-    use_agent_sdk = '--agent-sdk' in sys.argv
 
     print(f"🚀 Initializing skill: {skill_name}")
     print(f"   Location: {path}")
     if use_agent_sdk:
-        print(f"   Type: Claude Agent SDK (with custom tools)")
+        print("   Type: Claude Agent SDK (with custom tools)")
     else:
-        print(f"   Type: Standard skill")
+        print("   Type: Standard skill")
     print()
 
     result = init_skill(skill_name, path, use_agent_sdk=use_agent_sdk)
