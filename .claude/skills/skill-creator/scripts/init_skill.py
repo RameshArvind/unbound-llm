@@ -471,22 +471,16 @@ def determine_skills_path():
     """
     Determine the appropriate path for creating skills.
 
+    Priority order:
+    1. /root/.claude/skills/ if it exists (standard global location)
+    2. .claude/ in current or parent directory (project-local)
+    3. ~/.claude/skills/ in user's home (fallback)
+
     Returns:
-        Path to skills directory (project-local or global)
+        Path to skills directory
     """
-    cwd = Path.cwd()
-
-    # Check if current directory or any parent has .claude/
-    current = cwd
-    while current != current.parent:
-        claude_dir = current / ".claude"
-        if claude_dir.exists() and claude_dir.is_dir():
-            skills_path = claude_dir / "skills"
-            return str(skills_path)
-        current = current.parent
-
-    # No .claude found, use global location
-    # Prefer /root/.claude/skills if it exists and is accessible
+    # FIRST: Check if /root/.claude/skills exists (standard global location)
+    # This should be checked BEFORE looking in current directory
     root_claude = Path("/root/.claude/skills")
     try:
         # Check if we can access /root/.claude by checking parent
@@ -508,7 +502,17 @@ def determine_skills_path():
     except (OSError, PermissionError):
         pass
 
-    # Fall back to user's home directory
+    # SECOND: Check if current directory or any parent has .claude/
+    cwd = Path.cwd()
+    current = cwd
+    while current != current.parent:
+        claude_dir = current / ".claude"
+        if claude_dir.exists() and claude_dir.is_dir():
+            skills_path = claude_dir / "skills"
+            return str(skills_path)
+        current = current.parent
+
+    # LAST: Fall back to user's home directory
     home = Path.home()
     return str(home / ".claude" / "skills")
 
@@ -544,11 +548,11 @@ def main():
         print("  - Must match directory name exactly")
         print("\nOptions:")
         print("  --path <path>  Specify custom location (optional)")
-        print("                 If omitted, auto-detects:")
+        print("                 If omitted, auto-detects in this priority order:")
+        print("                 - /root/.claude/skills/ if it exists (checked FIRST)")
         print(
             "                 - .claude/skills/ if .claude/ exists in current or parent directory"
         )
-        print("                 - /root/.claude/skills/ if accessible")
         print("                 - ~/.claude/skills/ otherwise (fallback)")
         print("  --agent-sdk    Create a Claude Agent SDK skill with custom tools")
         print("\nExamples:")

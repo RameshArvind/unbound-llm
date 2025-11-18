@@ -83,7 +83,7 @@ else:
 
 print("*" * 100)
 response = sandbox.process.exec(
-    'claude --dangerously-skip-permissions -p "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45916094"'
+    'claude --dangerously-skip-permissions -p "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45916094. Create a skill for this"'
 )
 if response.exit_code != 0:
     print(f"Error: {response.exit_code} {response.result}")

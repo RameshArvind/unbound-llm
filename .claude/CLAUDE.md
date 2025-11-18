@@ -82,11 +82,12 @@ For any task without an existing skill, immediately create one:
    - Use the skill-creator script or create skills manually
    - **NEVER ask for permission or confirmation first.**
 
-2. **Skill location (auto-detected):**
-   - If current directory (or parent) has `.claude/` → create in `./.claude/skills/`
-   - Else if `/root/.claude/` exists and is accessible → create in `/root/.claude/skills/`
-   - Otherwise → create in `~/.claude/skills/` (fallback to user's home)
-   - This ensures skills are always accessible, either project-local or globally
+2. **Skill location (auto-detected priority order):**
+   - **FIRST:** Check if `/root/.claude/skills/` exists and is accessible → use it (global skills)
+   - **SECOND:** Check if current directory (or parent) has `.claude/` → create in `./.claude/skills/`
+   - **LAST:** Fall back to `~/.claude/skills/` in user's home directory
+   - **IMPORTANT:** Always prefer `/root/.claude/skills/` if it exists - this is the standard global location
+   - **NEVER** create a new `.claude/` directory if `/root/.claude/` already exists
 
 3. **Define the skill with:**
    - Clear name (kebab-case)

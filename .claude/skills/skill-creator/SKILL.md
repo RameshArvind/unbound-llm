@@ -350,12 +350,12 @@ scripts/init_skill.py <skill-name> --path <output-directory>
 scripts/init_skill.py <skill-name> --path <output-directory> --agent-sdk
 ```
 
-**Auto-detection (when --path is omitted):**
-- Searches for `.claude/` in current directory or any parent directory
-- If found → creates skill in `.claude/skills/` (project-local)
-- Else if `/root/.claude/` exists and is accessible → creates in `/root/.claude/skills/` (global)
-- Otherwise → creates in `~/.claude/skills/` (fallback to user's home)
-- This ensures skills are always accessible without manual path specification
+**Auto-detection (when --path is omitted) - Priority Order:**
+1. **FIRST:** If `/root/.claude/` exists → creates in `/root/.claude/skills/` (global standard location)
+2. **SECOND:** If `.claude/` in current or parent directory → creates in `.claude/skills/` (project-local)
+3. **LAST:** Otherwise → creates in `~/.claude/skills/` (fallback to user's home)
+
+**Important:** Always checks `/root/.claude/` FIRST before looking in current directory. This ensures skills are created in the global standard location when available.
 
 **The `--agent-sdk` option creates a Claude Agent SDK-based skill** that includes:
 - Custom MCP tools using the `@tool` decorator
@@ -385,11 +385,15 @@ cd /home/user/my-project  # Has .claude/ directory
 python .claude/skills/skill-creator/scripts/init_skill.py my-skill
 # Creates: /home/user/my-project/.claude/skills/my-skill/
 
-# In a directory without .claude/
-cd /tmp/random-work-dir  # No .claude/ directory
+# When /root/.claude/ exists (most common in sandboxes)
+cd /workspace  # No .claude/ here
 python /path/to/init_skill.py utility-skill
-# Creates: /root/.claude/skills/utility-skill/ (if /root/.claude accessible)
-#      or: ~/.claude/skills/utility-skill/ (fallback)
+# Creates: /root/.claude/skills/utility-skill/ (checked FIRST)
+
+# When no /root/.claude/ and no project .claude/
+cd /tmp/random-work-dir
+python /path/to/init_skill.py utility-skill
+# Creates: ~/.claude/skills/utility-skill/ (fallback)
 
 # Explicitly specify location (override auto-detection)
 python init_skill.py custom-skill --path /custom/location
