@@ -75,6 +75,13 @@ Executable code (Python/Bash/etc.) that can be run directly to perform specific 
 
 **Appropriate for:** Python scripts, shell scripts, or any executable code that performs automation, data processing, or specific operations.
 
+**Claude Agent SDK Skills:** Skills can also be implemented as Claude Agent SDK scripts that provide:
+- Custom MCP tools with the `@tool` decorator
+- Persistent sessions with `ClaudeSDKClient`
+- Hooks for intercepting tool execution
+- Type-safe tool definitions
+- See: https://docs.claude.com/en/docs/agent-sdk/python
+
 **Note:** Scripts may be executed without loading into context, but can still be read by Claude for patching or environment adjustments.
 
 ### references/
@@ -121,6 +128,163 @@ def main():
 
 if __name__ == "__main__":
     main()
+'''
+
+AGENT_SDK_SCRIPT = '''#!/usr/bin/env python3
+"""
+Claude Agent SDK script for {skill_name}
+
+This script uses the Claude Agent SDK to create a reusable, interactive skill
+with custom tools and controlled behavior.
+
+Installation:
+    pip install claude-agent-sdk
+
+Usage:
+    python scripts/run_agent.py
+
+Documentation: https://docs.claude.com/en/docs/agent-sdk/python
+"""
+
+import asyncio
+from claude_agent_sdk import (
+    ClaudeSDKClient,
+    ClaudeAgentOptions,
+    tool,
+    create_sdk_mcp_server,
+    AssistantMessage,
+    TextBlock,
+    ToolUseBlock
+)
+from typing import Any
+
+
+# Define custom tools for this skill
+@tool(
+    name="example_tool",
+    description="Example custom tool - replace with your actual tool",
+    input_schema={{"text": str, "count": int}}
+)
+async def example_tool(args: dict[str, Any]) -> dict[str, Any]:
+    """
+    Example tool implementation.
+    
+    Replace this with your actual tool logic. Common use cases:
+    - Database queries
+    - API calls to external services
+    - Custom data processing
+    - File format conversions
+    - Domain-specific operations
+    """
+    text = args.get("text", "")
+    count = args.get("count", 1)
+    
+    result = f"Processed '{{text}}' {{count}} times"
+    
+    return {{
+        "content": [{{
+            "type": "text",
+            "text": result
+        }}]
+    }}
+
+
+@tool(
+    name="another_tool",
+    description="Another example tool - add more tools as needed",
+    input_schema={{"query": str}}
+)
+async def another_tool(args: dict[str, Any]) -> dict[str, Any]:
+    """
+    Add as many tools as your skill needs.
+    Each tool should be focused on a specific operation.
+    """
+    query = args.get("query", "")
+    
+    return {{
+        "content": [{{
+            "type": "text",
+            "text": f"Query result for: {{query}}"
+        }}]
+    }}
+
+
+async def main():
+    """
+    Main entry point for the agent skill.
+    
+    Configuration options:
+    - mcp_servers: Custom tools for this skill
+    - allowed_tools: Which tools Claude can use (built-in + custom)
+    - permission_mode: "acceptEdits", "ask", "deny"
+    - system_prompt: Expertise and behavior for this skill
+    - cwd: Working directory for file operations
+    """
+    
+    # Create MCP server with custom tools
+    skill_server = create_sdk_mcp_server(
+        name="{skill_name_underscore}",
+        version="1.0.0",
+        tools=[example_tool, another_tool]
+    )
+    
+    # Configure agent options
+    options = ClaudeAgentOptions(
+        # Register custom tools
+        mcp_servers={{"{skill_name_underscore}": skill_server}},
+        
+        # Allow both built-in and custom tools
+        allowed_tools=[
+            # Built-in tools (use as needed)
+            "Read",
+            "Write",
+            "Bash",
+            "Grep",
+            "Glob",
+            
+            # Custom tools (prefixed with mcp__servername__)
+            "mcp__{skill_name_underscore}__example_tool",
+            "mcp__{skill_name_underscore}__another_tool"
+        ],
+        
+        # Permission mode: "acceptEdits" for automation, "ask" for interactive
+        permission_mode="acceptEdits",
+        
+        # System prompt defines the skill's expertise
+        system_prompt="""You are an expert at {skill_title}.
+        
+TODO: Replace with specific expertise and guidelines for this skill.
+
+Examples:
+- "You are a database schema expert specializing in PostgreSQL optimization."
+- "You are a frontend developer expert in React and modern CSS practices."
+- "You are a data analyst skilled in statistical analysis and visualization."
+"""
+    )
+    
+    # Create persistent client for interactive conversation
+    async with ClaudeSDKClient(options=options) as client:
+        # Initial query to start the skill
+        # TODO: Replace with appropriate starting prompt or make it accept CLI args
+        await client.query("TODO: Replace with your skill's main task or prompt")
+        
+        # Process responses with custom logic
+        async for message in client.receive_response():
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        print(f"[Response] {{block.text}}")
+                    elif isinstance(block, ToolUseBlock):
+                        print(f"[Tool] Using {{block.name}}")
+        
+        # Optional: Add follow-up queries for multi-turn conversation
+        # await client.query("Follow-up question or instruction")
+        # async for message in client.receive_response():
+        #     print(message)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 '''
 
 EXAMPLE_REFERENCE = """# Reference Documentation for {skill_title}
@@ -191,13 +355,14 @@ def title_case_skill_name(skill_name):
     return ' '.join(word.capitalize() for word in skill_name.split('-'))
 
 
-def init_skill(skill_name, path):
+def init_skill(skill_name, path, use_agent_sdk=False):
     """
     Initialize a new skill directory with template SKILL.md.
 
     Args:
         skill_name: Name of the skill
         path: Path where the skill directory should be created
+        use_agent_sdk: If True, create an Agent SDK script instead of basic script
 
     Returns:
         Path to created skill directory, or None if error
@@ -238,10 +403,23 @@ def init_skill(skill_name, path):
         # Create scripts/ directory with example script
         scripts_dir = skill_dir / 'scripts'
         scripts_dir.mkdir(exist_ok=True)
-        example_script = scripts_dir / 'example.py'
-        example_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
-        example_script.chmod(0o755)
-        print("✅ Created scripts/example.py")
+        
+        # Choose script template based on use_agent_sdk flag
+        if use_agent_sdk:
+            example_script = scripts_dir / 'run_agent.py'
+            skill_name_underscore = skill_name.replace('-', '_')
+            example_script.write_text(AGENT_SDK_SCRIPT.format(
+                skill_name=skill_name,
+                skill_name_underscore=skill_name_underscore,
+                skill_title=skill_title
+            ))
+            example_script.chmod(0o755)
+            print("✅ Created scripts/run_agent.py (Claude Agent SDK)")
+        else:
+            example_script = scripts_dir / 'example.py'
+            example_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
+            example_script.chmod(0o755)
+            print("✅ Created scripts/example.py")
 
         # Create references/ directory with example reference doc
         references_dir = skill_dir / 'references'
@@ -264,34 +442,47 @@ def init_skill(skill_name, path):
     print(f"\n✅ Skill '{skill_name}' initialized successfully at {skill_dir}")
     print("\nNext steps:")
     print("1. Edit SKILL.md to complete the TODO items and update the description")
-    print("2. Customize or delete the example files in scripts/, references/, and assets/")
-    print("3. Run the validator when ready to check the skill structure")
+    if use_agent_sdk:
+        print("2. Edit scripts/run_agent.py to implement custom tools and logic")
+        print("3. Install dependencies: pip install claude-agent-sdk")
+        print("4. Run the agent: python scripts/run_agent.py")
+    else:
+        print("2. Customize or delete the example files in scripts/, references/, and assets/")
+    print(f"{3 if use_agent_sdk else 2}. Run the validator when ready to check the skill structure")
 
     return skill_dir
 
 
 def main():
     if len(sys.argv) < 4 or sys.argv[2] != '--path':
-        print("Usage: init_skill.py <skill-name> --path <path>")
+        print("Usage: init_skill.py <skill-name> --path <path> [--agent-sdk]")
         print("\nSkill name requirements:")
         print("  - Hyphen-case identifier (e.g., 'data-analyzer')")
         print("  - Lowercase letters, digits, and hyphens only")
         print("  - Max 40 characters")
         print("  - Must match directory name exactly")
+        print("\nOptions:")
+        print("  --agent-sdk  Create a Claude Agent SDK skill with custom tools")
         print("\nExamples:")
         print("  init_skill.py my-new-skill --path skills/public")
         print("  init_skill.py my-api-helper --path skills/private")
+        print("  init_skill.py db-analyzer --path skills/public --agent-sdk")
         print("  init_skill.py custom-skill --path /custom/location")
         sys.exit(1)
 
     skill_name = sys.argv[1]
     path = sys.argv[3]
+    use_agent_sdk = '--agent-sdk' in sys.argv
 
     print(f"🚀 Initializing skill: {skill_name}")
     print(f"   Location: {path}")
+    if use_agent_sdk:
+        print(f"   Type: Claude Agent SDK (with custom tools)")
+    else:
+        print(f"   Type: Standard skill")
     print()
 
-    result = init_skill(skill_name, path)
+    result = init_skill(skill_name, path, use_agent_sdk=use_agent_sdk)
 
     if result:
         sys.exit(0)

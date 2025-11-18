@@ -253,61 +253,6 @@ To maximize this workflow:
 
 **Key point:** Even if you think "this might be one-off", create the skill anyway. The marginal cost is tiny, and the benefit of having it is huge.
 
-### Example 6: Creating a Reusable Agent SDK Skill
-**Request:** "Create a skill for database schema analysis"
-
-**Workflow:**
-1. Check skills → No existing skill
-2. Complex task with custom tools needed → CREATE AGENT SDK SKILL
-3. Create `.claude/skills/db-schema-analyzer/run.py`:
-
-```python
-#!/usr/bin/env python3
-import asyncio
-from claude_agent_sdk import (
-    ClaudeSDKClient, ClaudeAgentOptions, tool, 
-    create_sdk_mcp_server
-)
-from typing import Any
-
-@tool("query_db", "Execute SQL query", {"query": str})
-async def query_db(args: dict[str, Any]) -> dict[str, Any]:
-    # Custom database logic
-    return {"content": [{"type": "text", "text": "Results..."}]}
-
-@tool("get_schema", "Get table schema", {"table": str})
-async def get_schema(args: dict[str, Any]) -> dict[str, Any]:
-    # Custom schema retrieval
-    return {"content": [{"type": "text", "text": "Schema..."}]}
-
-async def main():
-    server = create_sdk_mcp_server(
-        name="db-tools", version="1.0.0",
-        tools=[query_db, get_schema]
-    )
-    
-    options = ClaudeAgentOptions(
-        mcp_servers={"db": server},
-        allowed_tools=[
-            "mcp__db__query_db",
-            "mcp__db__get_schema"
-        ],
-        system_prompt="Database schema analyzer expert"
-    )
-    
-    async with ClaudeSDKClient(options=options) as client:
-        await client.query("Analyze the user table schema")
-        async for msg in client.receive_response():
-            print(msg)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-4. Make executable: `chmod +x .claude/skills/db-schema-analyzer/run.py`
-5. Run the skill: `python .claude/skills/db-schema-analyzer/run.py`
-6. Future database analysis tasks use this powerful, reusable skill
-
 ## Conclusion
 
 This aggressive skill-first approach ensures that the project rapidly builds up a comprehensive library of reusable capabilities. By defaulting to skill creation, never asking for confirmation, and proactively using available tools (Python, grep, wget, etc.), we maximize efficiency and create a growing knowledge base that makes every subsequent task faster and more consistent.

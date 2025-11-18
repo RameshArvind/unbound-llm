@@ -341,17 +341,44 @@ When creating a new skill from scratch, always run the `init_skill.py` script. T
 Usage:
 
 ```bash
+# Standard skill
 scripts/init_skill.py <skill-name> --path <output-directory>
+
+# Agent SDK skill (with custom tools)
+scripts/init_skill.py <skill-name> --path <output-directory> --agent-sdk
 ```
 
-The script:
+**The `--agent-sdk` option creates a Claude Agent SDK-based skill** that includes:
+- Custom MCP tools using the `@tool` decorator
+- `ClaudeSDKClient` for persistent multi-turn conversations
+- Hooks for intercepting and modifying tool execution
+- Type-safe tool definitions with proper schemas
+- Full access to the Agent SDK capabilities
+
+**When to use `--agent-sdk`:**
+- ✅ You need custom tools specific to your domain (database queries, API calls, etc.)
+- ✅ The skill requires multi-turn interactive conversations
+- ✅ You want to intercept or modify tool behavior with hooks
+- ✅ The skill benefits from controlled, stateful sessions
+- ✅ You need type-safe, reusable tool definitions
+
+**When to use standard skills:**
+- ✅ Simple workflow or documentation skills
+- ✅ One-off utility scripts without custom tools
+- ✅ Skills that just guide Claude's behavior
+- ✅ Reference documentation or templates
+
+**The script:**
 
 - Creates the skill directory at the specified path
 - Generates a SKILL.md template with proper frontmatter and TODO placeholders
 - Creates example resource directories: `scripts/`, `references/`, and `assets/`
-- Adds example files in each directory that can be customized or deleted
+- Adds example files in each directory (Agent SDK script or standard script based on flag)
+- For Agent SDK skills, includes a fully-functional `run_agent.py` template
 
 After initialization, customize or remove the generated SKILL.md and example files as needed.
+
+**Agent SDK Documentation:** https://docs.claude.com/en/docs/agent-sdk/python
 
 ### Step 4: Edit the Skill
 
