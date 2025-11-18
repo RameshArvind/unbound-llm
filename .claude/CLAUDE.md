@@ -144,6 +144,41 @@ When processing a task:
 7. **Bias heavily toward skill creation - it's the default, not the exception**
 8. **Only execute directly for truly trivial one-off operations**
 
+### Communication: Explain What You're Doing in Your Output
+
+**IMPORTANT: Include this in your final response to the user.**
+
+**When creating a NEW skill:**
+Start your output by briefly mentioning you're creating a new skill:
+```
+"Creating a new 'hacker-news-scraper' skill for counting HN comments...
+
+[performs work]
+
+Found 342 comments on this discussion.
+
+Note: Created the 'hacker-news-scraper' skill - this can be reused for future HN analysis."
+```
+
+**When using an EXISTING skill:**
+Start your output by mentioning you're using an existing skill:
+```
+"Using the existing 'hacker-news-scraper' skill...
+
+[performs work]
+
+Found 256 comments on this discussion."
+```
+
+**Why this matters:**
+- Helps users understand when capabilities are being built vs. reused
+- Shows the growing library of project-specific tools
+- Makes it clear when skills can be reused for similar future tasks
+- Provides transparency about the skill-first approach
+- Users can see the investment in reusable infrastructure
+
+**Keep it brief:** One line at the start, optionally a note at the end for new skills. Don't explain the entire process, just acknowledge which path you're taking.
+
 ### Proactive Tool Usage: Never Ask, Just Do
 
 **CRITICAL PRINCIPLE: You have powerful tools - USE THEM without asking for permission.**
@@ -206,24 +241,26 @@ To maximize this workflow:
 ## Examples
 
 ### Example 1: Existing Skill Usage
-**Request:** "Perform a task we've done before"
+**Request:** "Generate another weekly performance report"
 
 **Workflow:**
-1. Check skills → Found: existing skill for this task
-2. Invoke the skill directly
-3. Execute task with skill's specialized knowledge
-4. Complete
+1. Check skills → Found: `performance-report-generator` skill exists
+2. **Say:** "Using the existing 'performance-report-generator' skill..."
+3. Invoke the skill directly
+4. Execute task with skill's specialized knowledge
+5. Complete
 
 ### Example 2: New Custom Report
 **Request:** "Generate a weekly performance report"
 
 **Workflow:**
 1. Check skills → No existing skill for this format
-2. Immediately create the skill structure (no asking, no confirmation)
-3. Create `performance-report-generator` skill
-4. Set it up in `.claude/skills/` directory
-5. Use the new skill to generate report immediately
-6. Future weekly reports use this skill
+2. **Say:** "Creating a new 'performance-report-generator' skill for weekly reports..."
+3. Immediately create the skill structure (no asking, no confirmation)
+4. Create `performance-report-generator` skill
+5. Set it up in `.claude/skills/` directory
+6. Use the new skill to generate report immediately
+7. Future weekly reports use this skill
 
 ### Example 3: One-off Fix
 **Request:** "Fix the typo in the header"
@@ -239,11 +276,12 @@ To maximize this workflow:
 **Workflow:**
 1. Check skills → No existing skill
 2. Multi-step task with potential reuse → CREATE SKILL (default action)
-3. Immediately create skill structure without asking
-4. Create `error-handling-analyzer` skill
-5. Set it up in the skills directory
-6. Use the new skill to complete analysis immediately
-7. Future code analysis tasks benefit from this skill
+3. **Say:** "Creating a new 'error-handling-analyzer' skill for code analysis..."
+4. Immediately create skill structure without asking
+5. Create `error-handling-analyzer` skill
+6. Set it up in the skills directory
+7. Use the new skill to complete analysis immediately
+8. Future code analysis tasks benefit from this skill
 
 ### Example 5: Even Seemingly One-Off Tasks
 **Request:** "Refactor the authentication module to use async/await"
@@ -251,11 +289,12 @@ To maximize this workflow:
 **Workflow:**
 1. Check skills → No existing skill
 2. This is a multi-step refactoring → CREATE SKILL (default)
-3. Create skill structure immediately
-4. Create `async-refactoring` or similar skill
-5. Set it up in the skills directory
-6. Use the new skill to complete refactoring
-7. Future refactoring tasks use this pattern
+3. **Say:** "Creating a new 'async-refactoring' skill for future async/await conversions..."
+4. Create skill structure immediately
+5. Create `async-refactoring` or similar skill
+6. Set it up in the skills directory
+7. Use the new skill to complete refactoring
+8. Future refactoring tasks use this pattern
 
 **Key point:** Even if you think "this might be one-off", create the skill anyway. The marginal cost is tiny, and the benefit of having it is huge.
 
