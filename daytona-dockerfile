@@ -39,7 +39,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
 RUN npm install -g @anthropic-ai/claude-code
 
 # Install pandas
-RUN pip3 install --no-cache-dir pandas
+RUN pip3 install --no-cache-dir pandas claude-agent-sdk
 
 
 # Verify installations
