@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 
 from daytona import (
     CreateSandboxFromImageParams,
     Daytona,
     DaytonaConfig,
+    FileUpload,
     Image,
 )
 from dotenv import load_dotenv
@@ -41,35 +43,36 @@ sandbox = daytona.create(
     on_snapshot_create_logs=print,
 )
 
-# Clone the repo and copy .claude folder to root
+# Upload .claude folder directly to sandbox
 print("\n" + "=" * 80)
 print("📦 SETUP: Installing Claude Skills")
 print("=" * 80)
-clone_response = sandbox.process.exec(
-    "git clone https://github.com/RameshArvind/unbound-llm.git /tmp/unbound-llm"
-)
-if clone_response.exit_code != 0:
-    print(
-        f"❌ Failed to clone repo: {clone_response.exit_code} {clone_response.result}"
-    )
+
+# Get the project root directory
+project_root = Path(__file__).parent.parent.parent.parent
+claude_dir = project_root / ".claude"
+
+if not claude_dir.exists():
+    print(f"❌ .claude directory not found at {claude_dir}")
 else:
-    print("✓ Repository cloned")
+    # Collect all files in .claude directory
+    files_to_upload = []
+    for file_path in claude_dir.rglob("*"):
+        if file_path.is_file():
+            relative_path = file_path.relative_to(claude_dir)
+            destination = f"/root/.claude/{relative_path.as_posix()}"
 
-    # Copy .claude folder to /root
-    copy_response = sandbox.process.exec("cp -r /tmp/unbound-llm/.claude /root/.claude")
-    if copy_response.exit_code != 0:
-        print(
-            f"❌ Failed to copy .claude folder: {copy_response.exit_code} {copy_response.result}"
-        )
-    else:
-        print("✓ Skills copied to /root/.claude")
+            with open(file_path, "rb") as f:
+                files_to_upload.append(
+                    FileUpload(
+                        source=f.read(),
+                        destination=destination,
+                    )
+                )
 
-    # Clean up
-    cleanup_response = sandbox.process.exec("rm -rf /tmp/unbound-llm")
-    if cleanup_response.exit_code != 0:
-        print(f"⚠️  Warning: Failed to clean up temp files: {cleanup_response.result}")
-    else:
-        print("✓ Cleanup complete")
+    print(f"📤 Uploading {len(files_to_upload)} files...")
+    sandbox.fs.upload_files(files_to_upload)
+    print("✓ Skills uploaded successfully")
 
 print("\n📋 Initial skills available:")
 skills_list = sandbox.process.exec(
@@ -79,11 +82,15 @@ for skill in skills_list.result.strip().split("\n"):
     print(f"   • {skill}")
 
 
-# Define test requests
+# Define test requests to demonstrate skill creation and reuse
 requests = [
+    # Task 1: Scrape HN comments & create a new skill for counting them
     "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45916094. Create a skill for this",
+    # Task 2: Reuse the HN skill created in Task 1 on a different discussion
     "How many comments are on this Hacker News discussion: https://news.ycombinator.com/item?id=45969250",
+    # Task 3: Count emojis & create a new skill for emoji counting
     "Count the number of emojis in the string 'Hello, world! 🌍'. Create a skill for this",
+    # Task 4: Reuse the emoji counting skill created in Task 3 on a multi-line string
     """Count the number of emojis in this multi-line string:
 'Hello! 👋 Welcome to our app 🎉
 We hope you enjoy using it! 😊
