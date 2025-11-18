@@ -487,18 +487,18 @@ def determine_skills_path():
 
     # No .claude found, use global location
     # Prefer /root/.claude/skills if it exists and is accessible
-    root_claude = Path('/root/.claude/skills')
+    root_claude = Path("/root/.claude/skills")
     try:
         # Check if we can access /root/.claude by checking parent
-        root_claude_parent = Path('/root/.claude')
+        root_claude_parent = Path("/root/.claude")
         if root_claude_parent.exists():
             return str(root_claude)
         # If /root/.claude doesn't exist, check if we can create it
         # by checking if /root is writable
-        root_path = Path('/root')
+        root_path = Path("/root")
         if root_path.exists() and root_path.is_dir():
             # Try to check write access
-            test_file = root_path / '.claude_test_write'
+            test_file = root_path / ".claude_test_write"
             try:
                 test_file.touch()
                 test_file.unlink()
@@ -507,7 +507,7 @@ def determine_skills_path():
                 pass
     except (OSError, PermissionError):
         pass
-    
+
     # Fall back to user's home directory
     home = Path.home()
     return str(home / ".claude" / "skills")
@@ -527,8 +527,8 @@ def main():
         path = determine_skills_path()
 
         print(f"📍 Auto-detected skills location: {path}")
-        home_claude = str(Path.home() / '.claude')
-        if path.startswith('/root/.claude'):
+        home_claude = str(Path.home() / ".claude")
+        if path.startswith("/root/.claude"):
             print("   (Using global skills directory)")
         elif path.startswith(home_claude):
             print("   (Using global skills directory in user home)")
