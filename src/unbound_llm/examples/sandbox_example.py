@@ -5,7 +5,6 @@ from daytona import (
     Daytona,
     DaytonaConfig,
     Image,
-    VolumeMount,
 )
 from dotenv import load_dotenv
 
@@ -36,45 +35,35 @@ sandbox = daytona.create(
             "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY"),
             "IS_SANDBOX": "1",
         },
-        volumes=[VolumeMount(volumeId=volume.id, mountPath=mount_dir_1)],
+        # volumes=[VolumeMount(volumeId=volume.id, mountPath=mount_dir_1)],
     ),
     timeout=0,
     on_snapshot_create_logs=print,
 )
-# Verify the volume mount worked by listing the mounted directory
-print(f"Checking mounted volume at {mount_dir_1}:")
-mount_check = sandbox.process.exec(f"ls -la {mount_dir_1}")
-if mount_check.exit_code != 0:
-    print(f"Volume mount check failed: {mount_check.exit_code} {mount_check.result}")
-else:
-    print("Volume contents:")
-    print(mount_check.result)
 
-# Also check using the tilde path (should expand to /root/.claude/skills)
-print("Checking ~/.claude/skills (tilde-expanded to /root):")
-tilde_check = sandbox.process.exec("ls -la ~/.claude/skills")
-if tilde_check.exit_code != 0:
-    print(f"Tilde path check failed: {tilde_check.exit_code} {tilde_check.result}")
+# Clone the repo and copy .claude folder to root
+print("Setting up Claude skills from repository...")
+clone_response = sandbox.process.exec(
+    "git clone https://github.com/RameshArvind/unbound-llm.git /tmp/unbound-llm"
+)
+if clone_response.exit_code != 0:
+    print(f"Failed to clone repo: {clone_response.exit_code} {clone_response.result}")
 else:
-    print("Tilde path contents:")
-    print(tilde_check.result)
+    print("Repository cloned successfully")
 
-# # Run the code securely inside the Sandbox
-# response = sandbox.process.exec(
-#     'claude --dangerously-skip-permissions -p "Create a new skill called that explains how to use grep into your skills directory"'
-# )
-# if response.exit_code != 0:
-#     print(f"Error: {response.exit_code} {response.result}")
-# else:
-#     print(response.result)
+    # Copy .claude folder to /root
+    copy_response = sandbox.process.exec("cp -r /tmp/unbound-llm/.claude /root/.claude")
+    if copy_response.exit_code != 0:
+        print(
+            f"Failed to copy .claude folder: {copy_response.exit_code} {copy_response.result}"
+        )
+    else:
+        print("Claude skills copied to /root/.claude")
 
-print("Checking ~/.claude/skills (tilde-expanded to /root):")
-tilde_check = sandbox.process.exec("ls -la ~/.claude/skills/grep-guide")
-if tilde_check.exit_code != 0:
-    print(f"Tilde path check failed: {tilde_check.exit_code} {tilde_check.result}")
-else:
-    print("Tilde path contents:")
-    print(tilde_check.result)
+    # Clean up
+    cleanup_response = sandbox.process.exec("rm -rf /tmp/unbound-llm")
+    if cleanup_response.exit_code != 0:
+        print(f"Warning: Failed to clean up temp files: {cleanup_response.result}")
 
 print("Checking ~/.claude/skills (tilde-expanded to /root):")
 tilde_check = sandbox.process.exec("ls -la ~/.claude/skills")
@@ -87,6 +76,22 @@ else:
 
 # Run the code securely inside the Sandbox
 response = sandbox.process.exec('claude -p "List the skills you have access to"')
+if response.exit_code != 0:
+    print(f"Error: {response.exit_code} {response.result}")
+else:
+    print(response.result)
+
+response = sandbox.process.exec(
+    'claude -p "Count the number of references in the Wikipedia article https://en.wikipedia.org/wiki/Prime_Minister_of_Bangladesh"'
+)
+if response.exit_code != 0:
+    print(f"Error: {response.exit_code} {response.result}")
+else:
+    print(response.result)
+
+response = sandbox.process.exec(
+    'claude -p "Count the number of references in the Wikipedia article https://en.wikipedia.org/wiki/Bengali_language"'
+)
 if response.exit_code != 0:
     print(f"Error: {response.exit_code} {response.result}")
 else:
