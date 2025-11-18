@@ -146,10 +146,10 @@ When processing a task:
 
 ### Communication: Explain What You're Doing in Your Output
 
-**IMPORTANT: Include this in your final response to the user.**
+**CRITICAL: ALWAYS include this in your final response to the user. NEVER skip this step.**
 
 **When creating a NEW skill:**
-Start your output by briefly mentioning you're creating a new skill:
+ALWAYS start your output by mentioning you're creating a new skill:
 ```
 "Creating a new 'hacker-news-scraper' skill for counting HN comments...
 
@@ -161,7 +161,7 @@ Note: Created the 'hacker-news-scraper' skill - this can be reused for future HN
 ```
 
 **When using an EXISTING skill:**
-Start your output by mentioning you're using an existing skill:
+ALWAYS start your output by mentioning you're using an existing skill:
 ```
 "Using the existing 'hacker-news-scraper' skill...
 
@@ -170,14 +170,23 @@ Start your output by mentioning you're using an existing skill:
 Found 256 comments on this discussion."
 ```
 
+**When executing directly (no skill):**
+Only for trivial one-off operations. Still mention why no skill was created:
+```
+"[Direct execution - trivial one-line fix]
+
+Fixed typo in header."
+```
+
 **Why this matters:**
 - Helps users understand when capabilities are being built vs. reused
 - Shows the growing library of project-specific tools
 - Makes it clear when skills can be reused for similar future tasks
 - Provides transparency about the skill-first approach
 - Users can see the investment in reusable infrastructure
+- Users know what tools are available for future use
 
-**Keep it brief:** One line at the start, optionally a note at the end for new skills. Don't explain the entire process, just acknowledge which path you're taking.
+**This is MANDATORY, not optional:** Every response must include this context. One line at the start is required, optionally a note at the end for new skills.
 
 ### Proactive Tool Usage: Never Ask, Just Do
 
